@@ -1,0 +1,165 @@
+@top Document { Feature? }
+
+Feature {
+  featureHeader {
+    Language?
+    Tags?
+    FeatureLine { xLine<FeatureKw> }
+    DescriptionHelper?
+  }
+  Background?
+  ScenarioDefinition*
+  Rule*
+}
+
+Language {
+  languageStart "language" ":" (LanguageName | InvalidLanguageName { context })
+}
+
+Rule {
+  ruleHeader {
+    (ruleTagStart Tags)?
+    RuleLine { xLine<RuleKw> }
+    DescriptionHelper?
+  }
+  Background?
+  ScenarioDefinition*
+}
+
+Background {
+  BackgroundLine { xLine<BackgroundKw> }
+  DescriptionHelper?
+  steps?
+}
+
+ScenarioDefinition {
+  Tags?
+  senario {
+    (ScenarioLine { xLine<ScenarioKw> }
+    | ScenarioOutlineLine { xLine<ScenarioOutlineKw> })
+    DescriptionHelper?
+    steps?
+    ExamplesDefinition
+  }
+}
+
+ExamplesDefinition {
+  Tags?
+  examples {
+    ExamplesLine { xLine<ExamplesKw> }
+    DescriptionHelper?
+    ExamplesTable {
+      TableHeadRow { tableRow }
+      TableRow*
+    }
+  }
+}
+
+Tags { Tag+ eol }
+
+xLine<spec> { spec ":" (noEol Context { context })? eol }
+
+DescriptionHelper { other+ }
+
+steps {
+  UnknownSteps { altSteps }?
+  (GivenGroup { xGroup<GivenKw> } | WhenGroup { xGroup<WhenKw> } | ThenGroup { xGroup<ThenKw> })+
+}
+
+xGroup<spec> { xStep<spec> altSteps? }
+
+altSteps { (AndStep { xStep<AndKw> } | ButStep { xStep<ButKw> } | AsteriskStep { xStep<"* "> })+ }
+
+xStep<spec> {
+  xStepLine<spec>
+  stepArg {
+    DataTable { TableRow+ }
+    | DocString {
+        docString<"```", noBackticks>
+        | docString<'"""', noDoubleQuotes>
+      }
+  }?
+}
+
+docString<sep, cnt> {
+  sep
+  (noEol MediaType { cnt } eol)?
+  (noEol DocStringContent { cnt+ })?
+  sep
+}
+
+TableRow { tableRow }
+tableRow {
+  "|"
+  TableCol { noEol tableCell "|" }*
+  (noEol TableTrailing { tableCell })?
+  eol
+}
+
+xStepLine<spec> { spec (noEol StepContext { (Param | noParam)+ })? eol }
+
+@context trackLanguage from "./tokens.js"
+
+@external tokens noEol from "./tokens.js" { noEol }
+
+@external tokens languageStart from "./tokens.js" { languageStart }
+@external tokens languageName from "./tokens.js" { LanguageName }
+
+@external tokens ruleTagStart from "./tokens.js" { ruleTagStart }
+
+@external tokens keywords from "./tokens.js" {
+  FeatureKw,
+  RuleKw,
+  BackgroundKw,
+  ScenarioKw,
+  ScenarioOutlineKw,
+  ExamplesKw,
+  GivenKw,
+  WhenKw,
+  ThenKw,
+  AndKw,
+  ButKw
+}
+
+@tokens {
+  whitespace { $[ \t]+ }
+
+  newline { $[\n\r] }
+  eol { newline | @eof }
+  @precedence { eol, newline }
+
+  Comment { "#" ![\r\n]* }
+
+  other { ![\r\n]+ }
+  context { other }
+
+  @precedence { context, Comment, other }
+  @precedence { context, whitespace, other }
+  @precedence { "* ", other }
+  @precedence { "|", other }
+
+  Tag { "@" ![@ \t\r\n]* }
+  @precedence { Tag, other }
+
+  Param { "<" ![>\r\n]+ ">" }
+  noParam { (![< \t\r\n] | "\\" _)+ }
+  @precedence { noParam, Comment }
+
+  tableCell { ("\\" ![\r\n] | "\\" "\r"? "\n" | ![|\r\n])+ }
+  @precedence { tableCell, whitespace }
+  @precedence { tableCell, Comment }
+
+  noBackticks { "`"? "`"? ("\\" _ | ![\\ \t\r\n`])+ }
+  @precedence { noBackticks, Comment }
+  noDoubleQuotes { '"'? '"'? ("\\" _ | ![\\ \t\r\n"])+ }
+  @precedence { noDoubleQuotes, Comment }
+
+  "* "
+  "language"
+  ":"
+  "|"
+}
+
+@skip { whitespace | newline | Comment }
+
+@detectDelim

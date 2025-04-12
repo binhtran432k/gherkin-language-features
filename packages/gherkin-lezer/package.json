@@ -1,11 +1,15 @@
 {
   "name": "gherkin-lezer",
-  "module": "index.ts",
   "type": "module",
-  "devDependencies": {
-    "@types/bun": "latest"
+  "scripts": {
+    "gen": "lezer-generator --typeScript src/gherkin.grammar -o src/parser"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "devDependencies": {
+    "gherkin": "github:cucumber/gherkin#v32.1.0",
+    "@lezer/generator": "^1.7.3"
+  },
+  "dependencies": {
+    "@lezer/lr": "^1.4.2",
+    "varbyte-printable": "^0.2.0"
   }
 }
